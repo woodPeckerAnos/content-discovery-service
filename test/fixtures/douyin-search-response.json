@@ -1,0 +1,39 @@
+{
+  "status_code": 0,
+  "data": [
+    {
+      "type": 1,
+      "aweme_info": {
+        "aweme_id": "7123456789012345678",
+        "desc": "简单家常菜教程",
+        "create_time": 1710000000,
+        "author": {
+          "uid": "12345",
+          "nickname": "美食博主"
+        },
+        "statistics": {
+          "digg_count": 12000,
+          "comment_count": 300,
+          "play_count": 500000
+        }
+      }
+    },
+    {
+      "type": 1,
+      "aweme_info": {
+        "aweme_id": "7987654321098765432",
+        "desc": "十分钟搞定晚餐",
+        "create_time": 1710100000,
+        "author": {
+          "uid": "67890",
+          "nickname": "快手厨房"
+        },
+        "statistics": {
+          "digg_count": 8000,
+          "comment_count": 120,
+          "play_count": 200000
+        }
+      }
+    }
+  ]
+}

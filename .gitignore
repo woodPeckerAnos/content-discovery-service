@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+profiles/
+results/
+.stagehand-cache/
+*.log
+.DS_Store

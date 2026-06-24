@@ -1,0 +1,26 @@
+searchUrlTemplate: "https://www.douyin.com/search/{keyword}"
+canonicalUrlTemplate: "https://www.douyin.com/video/{platformId}"
+
+network:
+  urlPatterns:
+    - "/aweme/v1/web/general/search"
+    - "/aweme/v1/web/search/item"
+    - "/aweme/v1/web/discover/search"
+
+filters:
+  contentType:
+    video: "视频"
+    image_text: "图文"
+  sortBy:
+    综合: "综合排序"
+    最多点赞: "最多点赞"
+    最新: "最新发布"
+  publishTime:
+    一天内: "一天内"
+    一周内: "一周内"
+    半年内: "半年内"
+
+defaults:
+  contentType: video
+  sortBy: 综合
+  publishTime: 一周内

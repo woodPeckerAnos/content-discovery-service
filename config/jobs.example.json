@@ -1,0 +1,26 @@
+{
+  "jobs": [
+    {
+      "platform": "douyin",
+      "mode": "keyword",
+      "keyword": "家常菜",
+      "filters": {
+        "contentType": "video",
+        "sortBy": "最多点赞",
+        "publishTime": "一周内"
+      },
+      "limit": 50
+    },
+    {
+      "platform": "douyin",
+      "mode": "keyword",
+      "keyword": "减脂餐",
+      "filters": {
+        "contentType": "video",
+        "sortBy": "最新",
+        "publishTime": "一天内"
+      },
+      "limit": 50
+    }
+  ]
+}
