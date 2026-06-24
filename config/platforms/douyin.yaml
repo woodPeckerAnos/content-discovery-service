@@ -6,6 +6,8 @@ network:
     - "/aweme/v1/web/general/search"
     - "/aweme/v1/web/search/item"
     - "/aweme/v1/web/discover/search"
+    - "/aweme/v1/web/search"
+    - "/aweme/v1/general/search"
 
 filters:
   contentType:

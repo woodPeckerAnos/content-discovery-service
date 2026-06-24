@@ -1,3 +1,11 @@
+import {
+  extractDescMapFromText,
+  isPlaceholderTitle,
+  normalizeDouyinText,
+  pickBetterTitle,
+  resolveDouyinDisplayTitle,
+} from "./title-utils.js";
+
 export interface ParsedDouyinItem {
   platformId: string;
   title: string;
@@ -12,10 +20,25 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function pickString(obj: Record<string, unknown>, ...keys: string[]): string {
+function pickAwemeId(obj: Record<string, unknown>, ...keys: string[]): string {
+  for (const key of keys) {
+    const val = obj[key];
+    if (typeof val === "string" && isValidDouyinVideoId(val.trim())) {
+      return val.trim();
+    }
+    if (typeof val === "number" && Number.isSafeInteger(val)) {
+      const asString = String(val);
+      if (isValidDouyinVideoId(asString)) return asString;
+    }
+  }
+  return "";
+}
+
+function pickScalarString(obj: Record<string, unknown>, ...keys: string[]): string {
   for (const key of keys) {
     const val = obj[key];
     if (typeof val === "string" && val.trim()) return val.trim();
+    if (typeof val === "number" && Number.isFinite(val)) return String(val);
   }
   return "";
 }
@@ -31,16 +54,48 @@ function pickNumber(obj: Record<string, unknown>, ...keys: string[]): number | u
   return undefined;
 }
 
+export function isValidDouyinVideoId(id: string): boolean {
+  return /^\d{10,25}$/.test(id);
+}
+
+export function parseAwemeIdsFromText(text: string): string[] {
+  const ids = new Set<string>();
+  const patterns = [
+    /"aweme_id"\s*:\s*"?(\d{10,25})"?/g,
+    /"awemeId"\s*:\s*"?(\d{10,25})"?/g,
+    /"group_id"\s*:\s*"?(\d{10,25})"?/g,
+    /\/video\/(\d{10,25})/g,
+  ];
+
+  for (const pattern of patterns) {
+    for (const match of text.matchAll(pattern)) {
+      if (match[1] && isValidDouyinVideoId(match[1])) {
+        ids.add(match[1]);
+      }
+    }
+  }
+
+  return Array.from(ids);
+}
+
 function parseAwemeNode(node: Record<string, unknown>): ParsedDouyinItem | null {
   const awemeInfo = asRecord(node.aweme_info) ?? node;
-  const platformId = pickString(awemeInfo, "aweme_id", "awemeId", "group_id");
-  if (!platformId) return null;
+  const platformId = pickAwemeId(awemeInfo, "aweme_id", "awemeId", "group_id");
+  if (!isValidDouyinVideoId(platformId)) return null;
 
   const authorObj = asRecord(awemeInfo.author);
   const stats = asRecord(awemeInfo.statistics) ?? asRecord(awemeInfo.stats);
+  const shareInfo = asRecord(awemeInfo.share_info);
 
-  const title =
-    pickString(awemeInfo, "desc", "title", "content") || `抖音视频 ${platformId}`;
+  const title = resolveDouyinDisplayTitle(
+    {
+      desc: awemeInfo.desc ?? awemeInfo.description,
+      title: awemeInfo.title ?? shareInfo?.share_title,
+      content: awemeInfo.content,
+      textExtra: awemeInfo.text_extra ?? awemeInfo.textExtra,
+    },
+    platformId,
+  );
 
   let publishedAt: string | undefined;
   const createTime = awemeInfo.create_time ?? awemeInfo.createTime;
@@ -53,8 +108,8 @@ function parseAwemeNode(node: Record<string, unknown>): ParsedDouyinItem | null 
     title,
     author: authorObj
       ? {
-          id: pickString(authorObj, "uid", "sec_uid") || undefined,
-          name: pickString(authorObj, "nickname", "unique_id") || undefined,
+          id: pickScalarString(authorObj, "uid", "sec_uid") || undefined,
+          name: pickScalarString(authorObj, "nickname", "unique_id") || undefined,
         }
       : undefined,
     metrics: stats
@@ -89,6 +144,7 @@ function collectAwemeNodes(payload: unknown, out: ParsedDouyinItem[]): void {
     "items",
     "business_data",
     "search_result",
+    "mix_list",
   ];
 
   for (const key of listKeys) {
@@ -110,10 +166,46 @@ export function parseDouyinSearchResponse(body: unknown): ParsedDouyinItem[] {
 
   const seen = new Set<string>();
   return items.filter((item) => {
-    if (seen.has(item.platformId)) return false;
+    if (!isValidDouyinVideoId(item.platformId) || seen.has(item.platformId)) {
+      return false;
+    }
     seen.add(item.platformId);
     return true;
   });
+}
+
+export function parseDouyinSearchResponseText(text: string): ParsedDouyinItem[] {
+  const descMap = extractDescMapFromText(text);
+  const byId = new Map<string, ParsedDouyinItem>();
+
+  for (const id of parseAwemeIdsFromText(text)) {
+    const desc = descMap.get(id);
+    byId.set(id, {
+      platformId: id,
+      title: desc
+        ? resolveDouyinDisplayTitle({ desc }, id)
+        : `抖音视频 ${id}`,
+    });
+  }
+
+  try {
+    const json = JSON.parse(text) as unknown;
+    for (const item of parseDouyinSearchResponse(json)) {
+      const existing = byId.get(item.platformId);
+      if (!existing) {
+        byId.set(item.platformId, item);
+        continue;
+      }
+      byId.set(item.platformId, {
+        ...item,
+        title: pickBetterTitle(existing.title, item.title, item.platformId),
+      });
+    }
+  } catch {
+    // regex-only path
+  }
+
+  return Array.from(byId.values());
 }
 
 export function mergeParsedItems(
@@ -121,8 +213,20 @@ export function mergeParsedItems(
   incoming: ParsedDouyinItem[],
 ): void {
   for (const item of incoming) {
-    if (!existing.has(item.platformId)) {
+    if (!isValidDouyinVideoId(item.platformId)) continue;
+    const prev = existing.get(item.platformId);
+    if (!prev) {
       existing.set(item.platformId, item);
+      continue;
     }
+    existing.set(item.platformId, {
+      ...item,
+      title: pickBetterTitle(prev.title, item.title, item.platformId),
+      author: item.author ?? prev.author,
+      metrics: item.metrics ?? prev.metrics,
+      publishedAt: item.publishedAt ?? prev.publishedAt,
+    });
   }
 }
+
+export { isPlaceholderTitle, normalizeDouyinText };

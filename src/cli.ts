@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from "node:fs/promises";
+import { runInteractiveLogin } from "./commands/login.js";
 import { runSearch, runSearchBatch } from "./services/search-service.js";
 import type { Platform } from "./types/content.js";
 import type { SearchRequest } from "./types/search.js";
@@ -90,6 +91,12 @@ async function cmdJobs(argv: string[]): Promise<void> {
   }
 }
 
+async function cmdLogin(argv: string[]): Promise<void> {
+  const args = parseArgs(argv);
+  const platform = String(args.platform ?? "douyin") as Platform;
+  await runInteractiveLogin(platform);
+}
+
 async function main(): Promise<void> {
   const [, , command, ...rest] = process.argv;
 
@@ -100,8 +107,12 @@ async function main(): Promise<void> {
     case "jobs":
       await cmdJobs(rest);
       break;
+    case "login":
+      await cmdLogin(rest);
+      break;
     default:
       console.log(`用法:
+  npm run login -- --platform douyin
   npm run search -- --platform douyin --keyword "家常菜" --content-type video --sort-by 最多点赞 --publish-time 一周内 --limit 50
   npm run jobs -- --file config/jobs.example.json`);
       process.exit(command ? 1 : 0);

@@ -15,6 +15,7 @@ const envSchema = z.object({
     .default("false")
     .transform((v) => v === "true"),
   BROWSER_PROFILE_DIR: z.string().default("profiles/douyin"),
+  BROWSER_CHANNEL: z.string().default("chrome"),
   MIN_RESULT_RATIO: z.coerce.number().min(0).max(1).default(0.9),
   MAX_SCROLLS: z.coerce.number().int().positive().default(15),
   SCROLL_DELAY_MS: z.coerce.number().int().nonnegative().default(2000),
@@ -57,8 +58,9 @@ export function getProfilePathForPlatform(
   config: AppConfig,
   platform: string,
 ): string {
-  if (config.BROWSER_PROFILE_DIR.includes(platform)) {
-    return config.browserProfilePath;
-  }
-  return path.join(projectRoot, "profiles", platform);
+  const base =
+    config.BROWSER_PROFILE_DIR.includes(platform)
+      ? config.browserProfilePath
+      : path.join(projectRoot, "profiles", platform);
+  return path.resolve(base);
 }

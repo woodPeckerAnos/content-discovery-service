@@ -5,34 +5,24 @@
       "type": 1,
       "aweme_info": {
         "aweme_id": "7123456789012345678",
-        "desc": "简单家常菜教程",
+        "desc": "紫水晶入门指南 #水晶 #能量水晶",
         "create_time": 1710000000,
-        "author": {
-          "uid": "12345",
-          "nickname": "美食博主"
-        },
-        "statistics": {
-          "digg_count": 12000,
-          "comment_count": 300,
-          "play_count": 500000
-        }
+        "author": { "uid": "12345", "nickname": "水晶博主" },
+        "statistics": { "digg_count": 12000, "comment_count": 300, "play_count": 500000 }
       }
     },
     {
       "type": 1,
       "aweme_info": {
         "aweme_id": "7987654321098765432",
-        "desc": "十分钟搞定晚餐",
+        "desc": "",
+        "text_extra": [
+          { "hashtag_name": "白水晶", "type": 1 },
+          { "hashtag_name": "净化", "type": 1 }
+        ],
         "create_time": 1710100000,
-        "author": {
-          "uid": "67890",
-          "nickname": "快手厨房"
-        },
-        "statistics": {
-          "digg_count": 8000,
-          "comment_count": 120,
-          "play_count": 200000
-        }
+        "author": { "uid": "67890", "nickname": "能量屋" },
+        "statistics": { "digg_count": 8000, "comment_count": 120, "play_count": 200000 }
       }
     }
   ]

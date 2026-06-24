@@ -4,5 +4,6 @@ dist/
 profiles/
 results/
 .stagehand-cache/
+**/auth-state.json
 *.log
 .DS_Store

@@ -6,6 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "search": "tsx src/cli.ts search",
+    "login": "tsx src/cli.ts login",
     "jobs": "tsx src/cli.ts jobs",
     "scheduler": "tsx src/scheduler/cron.ts",
     "build": "tsc",
@@ -13,7 +14,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "postinstall": "node node_modules/playwright-core/cli.js install chromium || true"
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:all": "npm test && npm run test:integration",
+    "setup:browsers": "tsx scripts/ensure-playwright-browsers.ts",
+    "smoke": "tsx scripts/smoke.ts",
+    "postinstall": "node node_modules/playwright-core/cli.js install chromium"
   },
   "engines": {
     "node": ">=18"

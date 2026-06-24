@@ -81,5 +81,8 @@ export function matchesDouyinNetworkUrl(
   cfg: DouyinPlatformConfig,
   url: string,
 ): boolean {
-  return cfg.network.urlPatterns.some((pattern) => url.includes(pattern));
+  if (cfg.network.urlPatterns.some((pattern) => url.includes(pattern))) {
+    return true;
+  }
+  return /aweme\/v\d+\/web\/.+search/i.test(url);
 }

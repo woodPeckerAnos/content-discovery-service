@@ -15,5 +15,7 @@ export interface BrowserDriver {
   goto(url: string): Promise<void>;
   wait(ms: number): Promise<void>;
   screenshot(path?: string): Promise<Buffer>;
+  evaluate<T>(fn: () => T): Promise<T>;
+  evaluateScript<T>(script: string): Promise<T>;
   close(): Promise<void>;
 }

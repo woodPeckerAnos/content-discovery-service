@@ -23,15 +23,22 @@ npm install
 
 ### 2. 首次登录抖音（重要）
 
-默认使用 **headed 浏览器** 和持久化 Profile（`profiles/douyin/`）：
+登录态保存在项目内 `profiles/douyin/`（Chrome userDataDir）。**只需登录一次**，后续搜索会复用。
 
 ```bash
-npm run search -- --platform douyin --keyword "测试" --limit 5
+npm run login -- --platform douyin
 ```
 
-浏览器弹出后，如未登录请手动登录抖音 Web 端。登录态会保存在 Profile 目录，后续任务无需重复登录。
+浏览器打开后完成扫码/手机号登录，确认右上角出现头像，回到终端按 **Enter** 保存并退出。
 
-如遇验证码，在浏览器中完成后重新运行命令即可。
+> 不要在登录过程中关闭浏览器窗口；也不要同时开两个任务抢同一个 Profile。
+
+若每次都要重新登录，常见原因：
+- 旧版本用 Stagehand 直接杀进程退出，Cookie 可能没写入磁盘（**请重新执行一次 `npm run login`**）
+- 在任务跑到一半时手动关了浏览器
+- 用日常 Chrome 登录，但任务用的是 `profiles/douyin/` 里的独立浏览器（Cookie 不共享）
+
+当前实现由 **Playwright `launchPersistentContext`** 管理 Profile，退出时 `context.close()` 正常落盘，并额外备份 `profiles/douyin/auth-state.json`。建议 `.env` 中设置 `BROWSER_CHANNEL=chrome` 使用本机 Chrome。
 
 ### 3. 单次搜索
 
@@ -63,6 +70,7 @@ npm run jobs -- --file config/jobs.example.json
 | `LLM_BASE_URL`        | API Base URL | `https://api.deepseek.com/v1` |
 | `HEADLESS`            | 无头模式         | `false`                       |
 | `BROWSER_PROFILE_DIR` | 浏览器 Profile  | `profiles/douyin`             |
+| `BROWSER_CHANNEL`     | 浏览器渠道         | `chrome`（本机 Chrome）       |
 | `MIN_RESULT_RATIO`    | 最低结果比例       | `0.9`                         |
 | `MAX_SCROLLS`         | 最大滚动次数       | `15`                          |
 | `CRON_ENABLED`        | 启用 Cron      | `false`                       |
@@ -118,9 +126,24 @@ node -e "const r=require('./results/2026-06-23-douyin-家常菜.json'); console.
 ## 测试
 
 ```bash
+# 单元测试（network 解析、脚本静态检查，速度快）
 npm test
+
+# 集成测试：在真实 Chromium 里执行 page.evaluate（可发现 __name 类问题）
+# 首次会自动下载 Chromium；也可手动：npm run setup:browsers
+npm run test:integration
+
+# 全部测试
+npm run test:all
+
+# 提交前 smoke（typecheck + unit + integration）
+npm run smoke
+
 npm run typecheck
 ```
+
+**建议**：改 `dom-extractor`、Playwright 相关代码后，至少跑 `npm run test:integration`。  
+此前 `page.evaluate(fn)` 在 tsx 下会注入 `__name` 导致浏览器报错，集成测试会在本地复现这类问题，而不必每次真跑抖音搜索。
 
 ## 合规说明
 
@@ -131,10 +154,14 @@ npm run typecheck
 
 | 命令                  | 说明            |
 | ------------------- | ------------- |
+| `npm run login`     | 一次性登录并保存 Cookie |
 | `npm run search`    | 单次搜索          |
 | `npm run jobs`      | 批量任务          |
 | `npm run scheduler` | 定时/一次性调度      |
 | `npm run typecheck` | TypeScript 检查 |
 | `npm test`          | 单元测试          |
+| `npm run setup:browsers` | 安装 Playwright Chromium（集成测试依赖） |
+| `npm run test:integration` | Chromium 集成测试 |
+| `npm run smoke`     | 提交前快速验证（含自动装浏览器 + 全部测试） |
 
 
