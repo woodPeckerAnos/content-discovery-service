@@ -30,9 +30,11 @@
     "node-cron": "^3.0.3",
     "playwright-core": "^1.52.0",
     "yaml": "^2.7.0",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "pg": "^8.16.0"
   },
   "devDependencies": {
+    "@types/pg": "^8.15.4",
     "@types/node": "^22.13.10",
     "@types/node-cron": "^3.0.11",
     "tsx": "^4.19.3",

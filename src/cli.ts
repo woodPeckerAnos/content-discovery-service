@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from "node:fs/promises";
 import { runInteractiveLogin } from "./commands/login.js";
+import { initDatabase } from "./db/migrate.js";
 import { runSearch, runSearchBatch } from "./services/search-service.js";
 import type { Platform } from "./types/content.js";
 import type { SearchRequest } from "./types/search.js";
@@ -102,9 +103,11 @@ async function main(): Promise<void> {
 
   switch (command) {
     case "search":
+      await initDatabase();
       await cmdSearch(rest);
       break;
     case "jobs":
+      await initDatabase();
       await cmdJobs(rest);
       break;
     case "login":

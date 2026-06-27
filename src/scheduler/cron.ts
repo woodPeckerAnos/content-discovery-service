@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import cron from "node-cron";
+import { initDatabase } from "../db/migrate.js";
 import { loadConfig } from "../config.js";
 import { runSearchBatch } from "../services/search-service.js";
 import type { SearchRequest } from "../types/search.js";
@@ -26,6 +27,7 @@ async function runScheduledJobs(): Promise<void> {
 
 async function main(): Promise<void> {
   const config = loadConfig();
+  await initDatabase();
 
   if (!config.CRON_ENABLED) {
     console.log("CRON_ENABLED=false，执行一次后退出");

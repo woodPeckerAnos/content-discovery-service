@@ -2,7 +2,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { SearchResultPayload } from "../types/content.js";
 import type { SearchRequest } from "../types/search.js";
+import { isDatabaseEnabled } from "../db/pool.js";
 import { loadConfig } from "../config.js";
+import { writeSearchRun } from "./db-result-store.js";
 
 function slugify(text: string): string {
   return text.replace(/[^\w\u4e00-\u9fff-]+/g, "-").replace(/^-|-$/g, "") || "search";
@@ -13,6 +15,10 @@ export class ResultStore {
     req: SearchRequest,
     payload: Omit<SearchResultPayload, "request">,
   ): Promise<string> {
+    if (isDatabaseEnabled()) {
+      return writeSearchRun(req, payload);
+    }
+
     const config = loadConfig();
     await fs.mkdir(config.resultsPath, { recursive: true });
 

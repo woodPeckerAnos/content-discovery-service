@@ -1,0 +1,13 @@
+node_modules
+dist
+results
+profiles
+.stagehand-cache
+.env
+.env.*
+!.env.example
+*.log
+test
+.git
+.gitignore
+README.md
