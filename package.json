@@ -18,6 +18,7 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:all": "npm test && npm run test:integration",
     "setup:browsers": "tsx scripts/ensure-playwright-browsers.ts",
+    "db:migrate": "bash scripts/apply-migrations-docker.sh",
     "smoke": "tsx scripts/smoke.ts",
     "postinstall": "node node_modules/playwright-core/cli.js install chromium"
   },

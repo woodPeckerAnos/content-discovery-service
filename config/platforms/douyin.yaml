@@ -24,5 +24,5 @@ filters:
 
 defaults:
   contentType: video
-  sortBy: 综合
+  sortBy: 最多点赞
   publishTime: 一周内

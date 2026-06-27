@@ -11,6 +11,55 @@ function parseTimestamp(value: string | undefined): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+/** @internal exported for unit tests */
+export function buildPlatformContentParams(item: UnifiedContentItem) {
+  return [
+    item.platform,
+    item.platformId,
+    item.contentType,
+    item.title,
+    item.shareUrl,
+    item.canonicalUrl ?? null,
+    item.author?.id ?? null,
+    item.author?.name ?? null,
+    item.metrics?.likes ?? null,
+    item.metrics?.views ?? null,
+    item.metrics?.comments ?? null,
+    parseTimestamp(item.publishedAt),
+  ];
+}
+
+export async function upsertPlatformContent(
+  client: pg.PoolClient,
+  item: UnifiedContentItem,
+): Promise<string> {
+  const result = await client.query<{ id: string }>(
+    `INSERT INTO platform_contents (
+       platform, platform_id, content_type,
+       title, share_url, canonical_url,
+       author_id, author_name, likes, views, comments, published_at
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+     ON CONFLICT (platform, platform_id) DO UPDATE SET
+       content_type = EXCLUDED.content_type,
+       title = EXCLUDED.title,
+       share_url = EXCLUDED.share_url,
+       canonical_url = EXCLUDED.canonical_url,
+       author_id = EXCLUDED.author_id,
+       author_name = EXCLUDED.author_name,
+       likes = EXCLUDED.likes,
+       views = EXCLUDED.views,
+       comments = EXCLUDED.comments,
+       published_at = EXCLUDED.published_at,
+       last_seen_at = now(),
+       seen_count = platform_contents.seen_count + 1,
+       updated_at = now()
+     RETURNING id`,
+    buildPlatformContentParams(item),
+  );
+
+  return result.rows[0].id;
+}
+
 export async function writeSearchRun(
   req: SearchRequest,
   payload: Omit<SearchResultPayload, "request">,
@@ -62,17 +111,23 @@ async function insertContentItem(
   runId: string,
   item: UnifiedContentItem,
 ): Promise<void> {
+  const platformContentId = await upsertPlatformContent(client, item);
+  const fetchedAt = new Date(item.fetchedAt);
+
   await client.query(
     `INSERT INTO content_items
-       (run_id, platform, content_type, rank, title, share_url, canonical_url,
+       (run_id, platform_content_id, platform, content_type, rank,
+        title, title_at_discovery, share_url, canonical_url,
         platform_id, author_id, author_name, likes, views, comments,
         published_at, fetched_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
     [
       runId,
+      platformContentId,
       item.platform,
       item.contentType,
       item.rank,
+      item.title,
       item.title,
       item.shareUrl,
       item.canonicalUrl ?? null,
@@ -83,7 +138,7 @@ async function insertContentItem(
       item.metrics?.views ?? null,
       item.metrics?.comments ?? null,
       parseTimestamp(item.publishedAt),
-      new Date(item.fetchedAt),
+      fetchedAt,
     ],
   );
 }
