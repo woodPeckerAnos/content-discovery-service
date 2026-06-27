@@ -17,3 +17,11 @@ export { getAdapter, listAdapters } from "./adapters/registry.js";
 export { runSearch, runSearchBatch } from "./services/search-service.js";
 export { createStagehandDriver } from "./drivers/stagehand-driver.js";
 export { loadConfig } from "./config.js";
+export {
+  parseSearchJobPayload,
+  parseSearchRequestBody,
+  parseBatchSearchBody,
+} from "./api/search-request.js";
+export { executeSearch, executeSearchBatch, searchExecutor } from "./services/search-executor.js";
+export { handleContentDiscoveryJob } from "./mq/handlers.js";
+export { createApp, startServer } from "./server/index.js";

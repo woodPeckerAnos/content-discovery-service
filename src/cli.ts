@@ -2,10 +2,13 @@
 import fs from "node:fs/promises";
 import { runInteractiveLogin } from "./commands/login.js";
 import { initDatabase } from "./db/migrate.js";
-import { runSearch, runSearchBatch } from "./services/search-service.js";
+import { buildSearchRequestFromCliArgs } from "./api/search-request.js";
+import {
+  executeSearch,
+  executeSearchBatch,
+} from "./services/search-executor.js";
 import type { Platform } from "./types/content.js";
 import type { SearchRequest } from "./types/search.js";
-import { PLATFORMS } from "./types/search.js";
 
 function parseArgs(argv: string[]): Record<string, string | boolean> {
   const args: Record<string, string | boolean> = {};
@@ -24,35 +27,12 @@ function parseArgs(argv: string[]): Record<string, string | boolean> {
   return args;
 }
 
-function buildSearchRequest(args: Record<string, string | boolean>): SearchRequest {
-  const platform = String(args.platform ?? "douyin") as Platform;
-  if (!PLATFORMS.includes(platform)) {
-    throw new Error(`不支持的平台: ${platform}`);
-  }
-
-  const limit = Number(args.limit ?? 50);
-  const keyword = args.keyword ? String(args.keyword) : undefined;
-
-  const filters: Record<string, unknown> = {};
-  if (args["content-type"]) filters.contentType = String(args["content-type"]);
-  if (args["sort-by"]) filters.sortBy = String(args["sort-by"]);
-  if (args["publish-time"]) filters.publishTime = String(args["publish-time"]);
-
-  return {
-    platform,
-    mode: "keyword",
-    keyword,
-    filters: Object.keys(filters).length ? filters : undefined,
-    limit,
-  };
-}
-
 async function cmdSearch(argv: string[]): Promise<void> {
   const args = parseArgs(argv);
-  const req = buildSearchRequest(args);
+  const req = buildSearchRequestFromCliArgs(args);
 
   console.log(`开始搜索: ${req.platform} / ${req.keyword ?? "(无关键词)"}`);
-  const result = await runSearch(req);
+  const result = await executeSearch(req);
 
   console.log(`完成: ${result.actualCount} 条, 耗时 ${result.durationMs}ms`);
   if (result.partial) {
@@ -81,7 +61,7 @@ async function cmdJobs(argv: string[]): Promise<void> {
   }
 
   console.log(`批量执行 ${parsed.jobs.length} 个任务...`);
-  const results = await runSearchBatch(parsed.jobs);
+  const results = await executeSearchBatch(parsed.jobs);
 
   for (let i = 0; i < results.length; i++) {
     const job = parsed.jobs[i];
@@ -115,9 +95,13 @@ async function main(): Promise<void> {
       break;
     default:
       console.log(`用法:
+  npm run server          # HTTP API（主服务入口）
+  npm run worker          # Redis 队列 Worker
   npm run login -- --platform douyin
-  npm run search -- --platform douyin --keyword "家常菜" --content-type video --sort-by 最多点赞 --publish-time 一周内 --limit 50
-  npm run jobs -- --file config/jobs.example.json`);
+  npm run search -- --platform douyin --keyword "家常菜" --limit 50
+  npm run jobs -- --file config/jobs.example.json
+
+详见 README.md / docs/mq.md`);
       process.exit(command ? 1 : 0);
   }
 }

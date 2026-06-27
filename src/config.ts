@@ -19,13 +19,14 @@ const envSchema = z.object({
   MIN_RESULT_RATIO: z.coerce.number().min(0).max(1).default(0.9),
   MAX_SCROLLS: z.coerce.number().int().positive().default(15),
   SCROLL_DELAY_MS: z.coerce.number().int().nonnegative().default(2000),
-  CRON_ENABLED: z
-    .enum(["true", "false"])
-    .default("false")
-    .transform((v) => v === "true"),
-  CRON_SCHEDULE: z.string().default("0 9,21 * * *"),
   JOBS_FILE: z.string().default("config/jobs.example.json"),
+  QUEUE_JOBS_CONFIG_PATH: z.string().default("config/queue-jobs.yaml"),
   RESULTS_DIR: z.string().default("results"),
+  SERVER_PORT: z.coerce.number().int().positive().default(3200),
+  API_TOKEN: z
+    .string()
+    .optional()
+    .transform((value) => value?.trim() || undefined),
 });
 
 export type AppConfig = z.infer<typeof envSchema> & {
@@ -33,6 +34,7 @@ export type AppConfig = z.infer<typeof envSchema> & {
   browserProfilePath: string;
   resultsPath: string;
   jobsPath: string;
+  queueJobsPath: string;
   cacheDir: string;
 };
 
@@ -50,6 +52,7 @@ export function loadConfig(): AppConfig {
     browserProfilePath: resolveFromRoot(parsed.BROWSER_PROFILE_DIR),
     resultsPath: resolveFromRoot(parsed.RESULTS_DIR),
     jobsPath: resolveFromRoot(parsed.JOBS_FILE),
+    queueJobsPath: resolveFromRoot(parsed.QUEUE_JOBS_CONFIG_PATH),
     cacheDir: path.join(projectRoot, ".stagehand-cache"),
   };
 }

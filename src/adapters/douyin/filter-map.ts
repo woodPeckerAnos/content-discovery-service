@@ -3,6 +3,8 @@ import path from "node:path";
 import { parse as parseYaml } from "yaml";
 import { loadConfig } from "../../config.js";
 
+import type { SearchRequest } from "../../types/search.js";
+
 export interface DouyinPlatformConfig {
   searchUrlTemplate: string;
   canonicalUrlTemplate: string;
@@ -37,6 +39,22 @@ export interface ResolvedDouyinFilters {
   contentTypeLabel: string;
   sortByLabel: string;
   publishTimeLabel: string;
+}
+
+export async function applyPlatformSearchDefaults(
+  req: SearchRequest,
+): Promise<SearchRequest> {
+  if (req.platform !== "douyin") return req;
+
+  const cfg = await loadDouyinConfig();
+  return {
+    ...req,
+    filters: {
+      contentType: req.filters?.contentType ?? cfg.defaults.contentType,
+      sortBy: req.filters?.sortBy ?? cfg.defaults.sortBy,
+      publishTime: req.filters?.publishTime ?? cfg.defaults.publishTime,
+    },
+  };
 }
 
 export async function resolveDouyinFilters(

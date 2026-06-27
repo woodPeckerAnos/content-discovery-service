@@ -1,0 +1,5 @@
+# 本 Worker 监听的 job 名称，必须与 job-scheduler/jobs.yaml 里的 name 一致。
+# 也可用环境变量 QUEUE_JOB_NAMES=douyin_search_crystal,douyin_search_home_cooking 覆盖。
+job_names:
+  - douyin_search_crystal
+  - douyin_search_home_cooking

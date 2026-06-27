@@ -1,4 +1,5 @@
 import { getAdapter } from "../adapters/registry.js";
+import { applyPlatformSearchDefaults } from "../adapters/douyin/filter-map.js";
 import { createStagehandDriver } from "../drivers/stagehand-driver.js";
 import { loadConfig } from "../config.js";
 import { retryOnce } from "../utils/retry.js";
@@ -31,15 +32,16 @@ function validateItems(
 
 export async function runSearch(req: SearchRequest): Promise<SearchResult> {
   validateSearchRequest(req);
+  const normalizedReq = await applyPlatformSearchDefaults(req);
   const config = loadConfig();
   const started = Date.now();
   const warnings: string[] = [];
 
   const execute = async () => {
-    const driver = await createStagehandDriver(req.platform);
+    const driver = await createStagehandDriver(normalizedReq.platform);
     try {
-      const adapter = getAdapter(req.platform);
-      const items = await adapter.search(req, driver);
+      const adapter = getAdapter(normalizedReq.platform);
+      const items = await adapter.search(normalizedReq, driver);
       return items;
     } finally {
       await driver.close();
@@ -47,7 +49,7 @@ export async function runSearch(req: SearchRequest): Promise<SearchResult> {
   };
 
   const { result: items, retried } = await retryOnce(execute, (result) => {
-    const check = validateItems(result, req);
+    const check = validateItems(result, normalizedReq);
     return !check.ok;
   });
 
@@ -55,12 +57,12 @@ export async function runSearch(req: SearchRequest): Promise<SearchResult> {
     warnings.push("首次结果不足，已自动重试一次");
   }
 
-  const validation = validateItems(items, req);
+  const validation = validateItems(items, normalizedReq);
   warnings.push(...validation.warnings);
   const partial = !validation.ok;
 
   const durationMs = Date.now() - started;
-  const outputPath = await resultStore.write(req, {
+  const outputPath = await resultStore.write(normalizedReq, {
     success: items.length > 0,
     partial,
     actualCount: items.length,
