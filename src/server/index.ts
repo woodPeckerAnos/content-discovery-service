@@ -1,3 +1,8 @@
+/**
+ * Koa HTTP 服务（npm run server）。
+ *
+ * 同步 / 异步搜索均经 searchExecutor 串行化后再启动浏览器，与 Worker 共用同一套 SearchService。
+ */
 import Koa from "koa";
 import { bodyParser } from "@koa/bodyparser";
 import Router from "@koa/router";

@@ -1,3 +1,8 @@
+/**
+ * 抖音搜索适配器：网络响应解析为主、DOM/LLM extract 为辅。
+ *
+ * 监听 search API 响应合并 aweme 列表；条数不足时用 Stagehand scroll + extract 补全。
+ */
 import { z } from "zod";
 import { loadConfig } from "../../config.js";
 import { sleep } from "../../utils/retry.js";

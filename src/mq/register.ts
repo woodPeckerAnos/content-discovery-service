@@ -1,3 +1,4 @@
+/** 从 config/queue-jobs.yaml（或 QUEUE_JOB_NAMES）注册本服务消费的 job 名称。 */
 import { readFile } from "node:fs/promises";
 import { parse } from "yaml";
 import { z } from "zod";

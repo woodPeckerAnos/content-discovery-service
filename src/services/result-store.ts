@@ -1,3 +1,4 @@
+/** 搜索结果持久化：有 DATABASE_URL 写库，否则写 RESULTS_DIR 下的 JSON 文件。 */
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { SearchResultPayload } from "../types/content.js";

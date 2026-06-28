@@ -1,3 +1,9 @@
+/**
+ * PostgreSQL 写入路径：一次搜索 = 一条 search_runs + 多条 content_items。
+ *
+ * platform_contents 按 (platform, platform_id) 去重并累加 seen_count；
+ * content_items 保留当次发现时的快照（含 rank、title_at_discovery）。
+ */
 import type pg from "pg";
 import { getPool } from "../db/pool.js";
 import type { SearchResultPayload, UnifiedContentItem } from "../types/content.js";
@@ -34,6 +40,7 @@ export async function upsertPlatformContent(
   item: UnifiedContentItem,
 ): Promise<string> {
   const result = await client.query<{ id: string }>(
+    // ON CONFLICT：更新最新元数据并递增 seen_count，供跨批次去重统计
     `INSERT INTO platform_contents (
        platform, platform_id, content_type,
        title, share_url, canonical_url,

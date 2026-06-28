@@ -1,4 +1,3 @@
-# 与 job-scheduler/jobs.yaml 中的 name 保持一致
+# Worker registers this wire jobName (see job-queue/PROTOCOL.md)
 job_names:
-  - douyin_search_crystal
-  - douyin_search_home_cooking
+  - douyin_search

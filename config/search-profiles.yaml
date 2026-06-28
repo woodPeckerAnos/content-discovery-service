@@ -1,0 +1,20 @@
+profiles:
+  crystal:
+    platform: douyin
+    mode: keyword
+    keyword: "水晶"
+    limit: 50
+    filters:
+      contentType: video
+      sortBy: 最多点赞
+      publishTime: 一周内
+
+  home_cooking:
+    platform: douyin
+    mode: keyword
+    keyword: "家常菜"
+    limit: 50
+    filters:
+      contentType: video
+      sortBy: 最多点赞
+      publishTime: 一周内

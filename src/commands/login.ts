@@ -1,3 +1,4 @@
+/** 交互式登录：打开持久化 Profile 浏览器，验证 Cookie 后写入 auth-state.json。 */
 import readline from "node:readline";
 import { getProfilePathForPlatform, loadConfig } from "../config.js";
 import {

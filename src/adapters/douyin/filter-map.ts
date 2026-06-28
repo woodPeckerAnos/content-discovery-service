@@ -1,3 +1,8 @@
+/**
+ * 抖音平台配置与筛选映射（config/platforms/douyin.yaml）。
+ *
+ * applyPlatformSearchDefaults 在请求未显式传 filters 时注入 defaults（如最多点赞、一周内）。
+ */
 import fs from "node:fs/promises";
 import path from "node:path";
 import { parse as parseYaml } from "yaml";

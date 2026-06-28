@@ -1,3 +1,9 @@
+/**
+ * 环境变量与路径解析。
+ *
+ * 浏览器 Profile 默认在 profiles/<platform>/，由 StagehandDriver 持久化 Cookie；
+ * 未配置 DATABASE_URL 时结果落盘到 RESULTS_DIR，不连 PostgreSQL。
+ */
 import "dotenv/config";
 import { z } from "zod";
 import path from "node:path";
@@ -21,6 +27,7 @@ const envSchema = z.object({
   SCROLL_DELAY_MS: z.coerce.number().int().nonnegative().default(2000),
   JOBS_FILE: z.string().default("config/jobs.example.json"),
   QUEUE_JOBS_CONFIG_PATH: z.string().default("config/queue-jobs.yaml"),
+  SEARCH_PROFILES_PATH: z.string().default("config/search-profiles.yaml"),
   RESULTS_DIR: z.string().default("results"),
   SERVER_PORT: z.coerce.number().int().positive().default(3200),
   API_TOKEN: z
@@ -35,6 +42,7 @@ export type AppConfig = z.infer<typeof envSchema> & {
   resultsPath: string;
   jobsPath: string;
   queueJobsPath: string;
+  searchProfilesPath: string;
   cacheDir: string;
 };
 
@@ -53,6 +61,7 @@ export function loadConfig(): AppConfig {
     resultsPath: resolveFromRoot(parsed.RESULTS_DIR),
     jobsPath: resolveFromRoot(parsed.JOBS_FILE),
     queueJobsPath: resolveFromRoot(parsed.QUEUE_JOBS_CONFIG_PATH),
+    searchProfilesPath: resolveFromRoot(parsed.SEARCH_PROFILES_PATH),
     cacheDir: path.join(projectRoot, ".stagehand-cache"),
   };
 }

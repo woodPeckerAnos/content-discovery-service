@@ -1,3 +1,4 @@
+/** HTTP 搜索路由：同步、批量、异步任务及 executor 队列状态。 */
 import Router from "@koa/router";
 import {
   parseBatchSearchBody,

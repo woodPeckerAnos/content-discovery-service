@@ -2,7 +2,9 @@ import { runSearch, runSearchBatch } from "./search-service.js";
 import type { SearchRequest, SearchResult } from "../types/search.js";
 
 /**
- * 串行执行搜索，避免多个 HTTP / 队列任务同时占用浏览器 Profile。
+ * 进程内互斥：HTTP、Worker、CLI 共用同一 searchExecutor 实例。
+ *
+ * Playwright 持久化 Profile 不支持并发多 context，故所有浏览器任务在此排队。
  */
 class SearchExecutor {
   private running = false;

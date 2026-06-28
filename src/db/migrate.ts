@@ -1,3 +1,4 @@
+/** 启动时按序执行 migrations/*.sql（schema_migrations 表记录已应用版本）。 */
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

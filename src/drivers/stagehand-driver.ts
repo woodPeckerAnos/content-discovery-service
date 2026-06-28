@@ -1,3 +1,9 @@
+/**
+ * 浏览器驱动：Playwright 持久化 Profile + Stagehand 附着 CDP。
+ *
+ * 流程：launchPersistentContext 保留登录态 → 读 CDP WebSocket → Stagehand 只做 act/extract，
+ * 不重复 launch Chrome。关闭时先 storageState 再关 context，避免 Cookie 丢失。
+ */
 import path from "node:path";
 import fs from "node:fs/promises";
 import { Stagehand } from "@browserbasehq/stagehand";

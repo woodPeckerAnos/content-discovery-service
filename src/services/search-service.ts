@@ -1,3 +1,8 @@
+/**
+ * 单次搜索编排：校验 → 平台默认筛选 → 启动浏览器 → adapter.search → 落库/落盘。
+ *
+ * 结果条数低于 MIN_RESULT_RATIO × limit 时会自动重试一次；partial 表示仍不足但未失败。
+ */
 import { getAdapter } from "../adapters/registry.js";
 import { applyPlatformSearchDefaults } from "../adapters/douyin/filter-map.js";
 import { createStagehandDriver } from "../drivers/stagehand-driver.js";

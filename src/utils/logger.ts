@@ -1,3 +1,8 @@
+/**
+ * 结构化日志：stdout JSON + 可选 POST 到 Vector（LOG_SINK_URL）。
+ *
+ * 字段对齐 Projects/schemas/log-entry.schema.json，便于 Loki/Grafana 检索。
+ */
 import type {
   LogEntry,
   LogEnv,

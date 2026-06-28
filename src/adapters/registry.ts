@@ -1,3 +1,4 @@
+/** 平台适配器注册表；V1 仅 douyin 为完整实现，其余为 stub。 */
 import type { Platform } from "../types/content.js";
 import type { PlatformAdapter } from "./platform-adapter.js";
 import { DouyinAdapter } from "./douyin/adapter.js";

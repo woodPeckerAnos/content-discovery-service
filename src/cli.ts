@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/** 本地调试入口：search / jobs / login（生产流量走 npm run server 或 worker）。 */
 import fs from "node:fs/promises";
 import { runInteractiveLogin } from "./commands/login.js";
 import { initDatabase } from "./db/migrate.js";

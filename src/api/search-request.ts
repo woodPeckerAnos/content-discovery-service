@@ -1,3 +1,4 @@
+/** HTTP / MQ / CLI 共用的 SearchRequest 解析与校验（Zod schema 单一来源）。 */
 import { z } from "zod";
 import type { Platform } from "../types/content.js";
 import type { SearchRequest } from "../types/search.js";

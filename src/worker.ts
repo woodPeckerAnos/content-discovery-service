@@ -1,3 +1,10 @@
+/**
+ * Redis Streams 队列 Worker 入口（npm run worker）。
+ *
+ * 由 job-scheduler 投递 douyin_search 等任务；搜索完成后可向下游
+ * comments-douyin / transcript 队列派发 pipeline 子任务（见 mq/dispatch.ts）。
+ * WORKER_CONCURRENCY 建议为 1，避免多任务争抢同一浏览器 Profile。
+ */
 import { createWorker } from "job-queue";
 import { registerContentDiscoveryHandlers } from "./mq/register.js";
 import { log, logFromJobQueue } from "./utils/logger.js";
@@ -14,6 +21,7 @@ async function main(): Promise<void> {
   }
 
   const worker = createWorker({
+    queueName: process.env.QUEUE_NAME ?? "search",
     concurrency,
     consumerName: process.env.WORKER_NAME ?? "content-discovery",
     onLog: logFromJobQueue,
@@ -32,7 +40,7 @@ async function main(): Promise<void> {
 
   log.info("Content discovery worker starting", {
     context: {
-      queue: process.env.QUEUE_NAME ?? "jobs",
+      queue: process.env.QUEUE_NAME ?? "search",
       redis: `${process.env.REDIS_HOST ?? "127.0.0.1"}:${process.env.REDIS_PORT ?? 6379}`,
       concurrency,
       jobNames,

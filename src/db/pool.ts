@@ -1,3 +1,4 @@
+/** PostgreSQL 连接池；未设置 DATABASE_URL 时 isDatabaseEnabled() 为 false，走 JSON 落盘。 */
 import pg from "pg";
 
 const { Pool } = pg;

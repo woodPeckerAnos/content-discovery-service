@@ -1,3 +1,4 @@
+/** 库导出：供 monorepo 内其他包或集成测试引用核心类型与搜索 API。 */
 export type {
   Platform,
   ContentType,
