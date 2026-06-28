@@ -5,6 +5,7 @@ import { initDatabase } from "../db/migrate.js";
 import { loadConfig } from "../config.js";
 import { authMiddleware } from "./auth.js";
 import { errorMiddleware } from "./middleware/error-handler.js";
+import { httpLogger } from "./middleware/http-logger.js";
 import { createSearchRouter } from "./routes/search.js";
 import { searchExecutor } from "../services/search-executor.js";
 import { log } from "../utils/logger.js";
@@ -15,6 +16,7 @@ export async function createApp(): Promise<Koa> {
   const app = new Koa();
 
   app.use(errorMiddleware);
+  app.use(httpLogger);
   app.use(bodyParser({ jsonLimit: "1mb", encoding: "utf-8" }));
   app.use(authMiddleware);
 
@@ -43,14 +45,16 @@ export async function startServer(): Promise<void> {
 
   const server = app.listen(config.SERVER_PORT, () => {
     log.info("Content discovery server listening", {
-      port: config.SERVER_PORT,
-      auth: Boolean(config.API_TOKEN),
-      framework: "koa",
+      context: {
+        port: config.SERVER_PORT,
+        auth: Boolean(config.API_TOKEN),
+        framework: "koa",
+      },
     });
   });
 
   const shutdown = (signal: string) => {
-    log.info("Shutting down server", { signal });
+    log.info("Shutting down server", { context: { signal } });
     server.close(() => process.exit(0));
   };
 

@@ -28,6 +28,8 @@ export async function registerContentDiscoveryHandlers(): Promise<string[]> {
     registerHandler(jobName, handleContentDiscoveryJob);
   }
 
-  log.info("Registered queue handlers", { jobNames });
+  log.info("Registered queue handlers", {
+    context: { jobNames },
+  });
   return jobNames;
 }

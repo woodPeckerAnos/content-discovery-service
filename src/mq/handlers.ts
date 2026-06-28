@@ -8,25 +8,35 @@ import {
   executeSearchBatch,
 } from "../services/search-executor.js";
 
-async function executeSearchJob(req: SearchRequest, jobName: string): Promise<void> {
+async function executeSearchJob(
+  req: SearchRequest,
+  jobName: string,
+  messageId?: string,
+): Promise<void> {
   log.info("Starting search job", {
-    jobName,
-    platform: req.platform,
-    keyword: req.keyword,
-    limit: req.limit,
+    job_name: jobName,
+    job_id: messageId,
+    context: {
+      platform: req.platform,
+      keyword: req.keyword,
+      limit: req.limit,
+    },
   });
 
   const result = await executeSearch(req);
 
   log.info("Search job finished", {
-    jobName,
-    platform: req.platform,
-    keyword: req.keyword,
-    success: result.success,
-    partial: result.partial ?? false,
-    actualCount: result.actualCount,
-    durationMs: result.durationMs,
-    outputPath: result.outputPath,
+    job_name: jobName,
+    job_id: messageId,
+    duration_ms: result.durationMs,
+    context: {
+      platform: req.platform,
+      keyword: req.keyword,
+      success: result.success,
+      partial: result.partial ?? false,
+      actualCount: result.actualCount,
+      outputPath: result.outputPath,
+    },
   });
 
   if (!result.success) {
@@ -37,8 +47,8 @@ async function executeSearchJob(req: SearchRequest, jobName: string): Promise<vo
 
   if (result.warnings?.length) {
     log.warn("Search completed with warnings", {
-      jobName,
-      warnings: result.warnings,
+      job_name: jobName,
+      context: { warnings: result.warnings },
     });
   }
 }
@@ -52,8 +62,8 @@ export async function handleContentDiscoveryJob(
 
   if (Array.isArray(parsed)) {
     log.info("Running batch search job", {
-      jobName: message.jobName,
-      count: parsed.length,
+      job_name: message.jobName,
+      context: { count: parsed.length },
     });
     const results = await executeSearchBatch(parsed);
     const failed = results.filter((r) => !r.success);

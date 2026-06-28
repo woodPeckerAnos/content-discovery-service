@@ -17,7 +17,7 @@ export async function errorMiddleware(ctx: Context, next: Next): Promise<void> {
     }
 
     const message = error instanceof Error ? error.message : String(error);
-    log.error("HTTP API error", { error: message });
+    log.error("HTTP API error", { error });
     ctx.status = 500;
     ctx.body = { error: message };
   }

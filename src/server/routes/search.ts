@@ -37,8 +37,11 @@ export function createSearchRouter(): Router {
   router.post("/search", async (ctx) => {
     const searchReq = parseSearchRequestBody(ctx.request.body);
     log.info("HTTP sync search started", {
-      platform: searchReq.platform,
-      keyword: searchReq.keyword,
+      context: {
+        platform: searchReq.platform,
+        keyword: searchReq.keyword,
+        limit: searchReq.limit,
+      },
     });
 
     const result = await executeSearch(searchReq);
@@ -55,7 +58,9 @@ export function createSearchRouter(): Router {
 
   router.post("/search/batch", async (ctx) => {
     const requests = parseBatchSearchBody(ctx.request.body);
-    log.info("HTTP batch search started", { count: requests.length });
+    log.info("HTTP batch search started", {
+      context: { count: requests.length },
+    });
 
     const results = await executeSearchBatch(requests);
     const failed = results.filter((item) => !item.success);
@@ -117,13 +122,19 @@ async function runAsyncSearch(
     }
     completeAsyncSearchJob(id, result);
     log.info("HTTP async search completed", {
-      id,
-      keyword: searchReq.keyword,
-      actualCount: result.actualCount,
+      request_id: id,
+      duration_ms: result.durationMs,
+      context: {
+        keyword: searchReq.keyword,
+        actualCount: result.actualCount,
+      },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     failAsyncSearchJob(id, message);
-    log.error("HTTP async search failed", { id, error: message });
+    log.error("HTTP async search failed", {
+      request_id: id,
+      error,
+    });
   }
 }

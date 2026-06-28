@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getPool } from "./pool.js";
+import { log } from "../utils/logger.js";
 
 const projectRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -42,7 +43,9 @@ export async function runMigrations(): Promise<void> {
         [file],
       );
       await client.query("COMMIT");
-      console.log(`[db] applied migration ${file}`);
+      log.info("Database migration applied", {
+        context: { version: file },
+      });
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -57,5 +60,5 @@ export async function initDatabase(): Promise<void> {
     return;
   }
   await runMigrations();
-  console.log("[db] PostgreSQL connected, migrations applied");
+  log.info("PostgreSQL connected, migrations applied");
 }
