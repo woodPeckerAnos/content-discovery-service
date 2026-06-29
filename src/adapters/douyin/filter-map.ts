@@ -167,3 +167,8 @@ export function isGeneralTabSearchNetworkUrl(url: string): boolean {
     url.includes("/aweme/v1/general/search")
   );
 }
+
+/** 视频 Tab 主列表 API；其 aweme_list 顺序可作为 DOM 不可用时的兜底 */
+export function isVideoTabSearchNetworkUrl(url: string): boolean {
+  return url.includes("/aweme/v1/web/search/item");
+}

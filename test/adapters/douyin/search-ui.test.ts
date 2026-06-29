@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildActivateTabScript,
   buildClickFilterOptionInPanelScript,
   buildFilterPanelStateScript,
   buildIsTabActiveScript,
-  buildToggleFilterPanelScript,
+  buildOpenFilterPanelScript,
   FILTER_PANEL_INDEX1,
   isDouyinActiveTabColor,
   isDouyinFilterOptionSelected,
@@ -13,24 +14,36 @@ import {
 describe("search-ui scripts", () => {
   it("detects open panel when filter host children.length > 1", () => {
     const script = buildFilterPanelStateScript("video");
-    expect(script).toContain("children.length");
     expect(script).toContain("childCount > 1");
   });
 
-  it("toggles filter panel via tab row tabindex host", () => {
-    const script = buildToggleFilterPanelScript("video");
-    expect(script).toContain('span[data-key="video"]');
+  it("opens filter panel only when closed (no blind toggle retry)", () => {
+    const script = buildOpenFilterPanelScript("video");
+    expect(script).toContain("getFilterHost");
     expect(script).toContain('[tabindex="0"]');
-    expect(script).toContain("children[0]");
+    expect(script).toContain("if (state.open)");
+    expect(script).toContain("clickOnce");
+    expect(script).not.toContain("console.log");
   });
 
-  it("clicks filter option inside open panel host only", () => {
+  it("activates tab with single clickOnce and skips when already active", () => {
+    const script = buildActivateTabScript("video");
+    expect(script).toContain("clickOnce");
+    expect(script).toContain("if (isTabActive(tab))");
+    expect(script).not.toMatch(
+      /dispatchEvent[\s\S]*clickOnce[\s\S]*\.click\(\)/,
+    );
+  });
+
+  it("clicks filter option once inside open panel host", () => {
     const script = buildClickFilterOptionInPanelScript("video", 0, 2, "最多点赞");
     expect(script).toContain("host.children.length <= 1");
     expect(script).toContain('data-index1="0"');
     expect(script).toContain('data-index2="2"');
     expect(script).toContain("最多点赞");
     expect(script).toContain("already_selected");
+    expect(script).toContain("clickOnce(el)");
+    expect(script).not.toContain("function dispatchClick");
   });
 
   it("detects active tab by computed text color (red)", () => {

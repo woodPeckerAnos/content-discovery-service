@@ -3,6 +3,7 @@ import {
   applyPlatformSearchDefaults,
   buildDouyinSearchUrl,
   isGeneralTabSearchNetworkUrl,
+  isVideoTabSearchNetworkUrl,
   loadDouyinConfig,
   resolveDouyinFilterDomSelection,
 } from "../../../src/adapters/douyin/filter-map.js";
@@ -71,6 +72,21 @@ describe("isGeneralTabSearchNetworkUrl", () => {
     expect(
       isGeneralTabSearchNetworkUrl(
         "https://www.douyin.com/aweme/v1/web/search/item/",
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("isVideoTabSearchNetworkUrl", () => {
+  it("detects video tab search item API", () => {
+    expect(
+      isVideoTabSearchNetworkUrl(
+        "https://www.douyin.com/aweme/v1/web/search/item/",
+      ),
+    ).toBe(true);
+    expect(
+      isVideoTabSearchNetworkUrl(
+        "https://www.douyin.com/aweme/v1/web/discover/search/",
       ),
     ).toBe(false);
   });

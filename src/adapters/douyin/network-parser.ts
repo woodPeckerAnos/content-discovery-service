@@ -174,6 +174,58 @@ export function parseDouyinSearchResponse(body: unknown): ParsedDouyinItem[] {
   });
 }
 
+/** 仅解析顶层列表字段，保持接口返回顺序，不递归扫全 JSON */
+export function parseDouyinSearchResponseOrdered(text: string): ParsedDouyinItem[] {
+  try {
+    const json = JSON.parse(text) as unknown;
+    return parseDouyinSearchListResponse(json);
+  } catch {
+    return [];
+  }
+}
+
+function parseDouyinSearchListResponse(body: unknown): ParsedDouyinItem[] {
+  const record = asRecord(body);
+  if (!record) return [];
+
+  const items: ParsedDouyinItem[] = [];
+  const seen = new Set<string>();
+  const listKeys = [
+    "aweme_list",
+    "data",
+    "item_list",
+    "items",
+    "business_data",
+  ];
+
+  for (const key of listKeys) {
+    const list = record[key];
+    if (!Array.isArray(list)) continue;
+
+    for (const node of list) {
+      const nodeRecord = asRecord(node);
+      if (!nodeRecord) continue;
+
+      const parsed =
+        parseAwemeNode(nodeRecord) ??
+        parseAwemeNode(asRecord(nodeRecord.aweme_info) ?? {});
+
+      if (
+        !parsed ||
+        !isValidDouyinVideoId(parsed.platformId) ||
+        seen.has(parsed.platformId)
+      ) {
+        continue;
+      }
+
+      seen.add(parsed.platformId);
+      items.push(parsed);
+    }
+  }
+
+  return items;
+}
+
 export function parseDouyinSearchResponseText(text: string): ParsedDouyinItem[] {
   const descMap = extractDescMapFromText(text);
   const byId = new Map<string, ParsedDouyinItem>();
@@ -206,6 +258,22 @@ export function parseDouyinSearchResponseText(text: string): ParsedDouyinItem[] 
   }
 
   return Array.from(byId.values());
+}
+
+export function mergeNetworkOrder(
+  existing: string[],
+  incoming: ParsedDouyinItem[],
+): string[] {
+  const order = [...existing];
+  const seen = new Set(order);
+  for (const item of incoming) {
+    if (!isValidDouyinVideoId(item.platformId) || seen.has(item.platformId)) {
+      continue;
+    }
+    seen.add(item.platformId);
+    order.push(item.platformId);
+  }
+  return order;
 }
 
 export function mergeParsedItems(

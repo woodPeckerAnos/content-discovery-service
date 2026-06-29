@@ -3,8 +3,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  mergeNetworkOrder,
   parseAwemeIdsFromText,
   parseDouyinSearchResponse,
+  parseDouyinSearchResponseOrdered,
   parseDouyinSearchResponseText,
 } from "../../src/adapters/douyin/network-parser.js";
 
@@ -75,6 +77,37 @@ describe("parseDouyinSearchResponse", () => {
 
   it("returns empty array for unrelated payload", () => {
     expect(parseDouyinSearchResponse({ hello: "world" })).toEqual([]);
+  });
+});
+
+describe("parseDouyinSearchResponseOrdered", () => {
+  it("preserves aweme_list order without regex side ids", () => {
+    const text = JSON.stringify({
+      aweme_list: [
+        { aweme_id: "7111111111111111111", desc: "first" },
+        { aweme_id: "7222222222222222222", desc: "second" },
+      ],
+      extra: { aweme_id: "7999999999999999999", desc: "noise" },
+    });
+
+    const items = parseDouyinSearchResponseOrdered(text);
+    expect(items.map((item) => item.platformId)).toEqual([
+      "7111111111111111111",
+      "7222222222222222222",
+    ]);
+  });
+});
+
+describe("mergeNetworkOrder", () => {
+  it("appends ids in response order", () => {
+    const order = mergeNetworkOrder([], [
+      { platformId: "7111111111111111111", title: "a" },
+      { platformId: "7222222222222222222", title: "b" },
+    ]);
+    expect(order).toEqual([
+      "7111111111111111111",
+      "7222222222222222222",
+    ]);
   });
 });
 

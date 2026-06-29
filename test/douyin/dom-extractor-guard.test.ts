@@ -14,12 +14,14 @@ describe("EXTRACT_VIDEOS_SCRIPT guard", () => {
 
   it("is a callable browser expression", () => {
     expect(EXTRACT_VIDEOS_SCRIPT.trim().startsWith("() =>")).toBe(true);
-    expect(EXTRACT_VIDEOS_SCRIPT).toContain("document.querySelectorAll");
+    expect(EXTRACT_VIDEOS_SCRIPT).toContain("document.querySelector");
   });
 
   it("skips embedded script aweme mining to avoid general-tab pollution", () => {
     expect(EXTRACT_VIDEOS_SCRIPT).not.toContain('querySelectorAll("script")');
-    expect(EXTRACT_VIDEOS_SCRIPT).toContain("isVisible");
+    expect(EXTRACT_VIDEOS_SCRIPT).toContain("isVisibleTree");
+    expect(EXTRACT_VIDEOS_SCRIPT).toContain('data-e2e="scroll-list"');
+    expect(EXTRACT_VIDEOS_SCRIPT).toContain("waterfall_item_");
   });
 
   it("parses as valid JS function body in Node (syntax only)", () => {

@@ -15,6 +15,7 @@ import {
   buildDouyinCanonicalUrl,
   buildDouyinSearchUrl,
   isGeneralTabSearchNetworkUrl,
+  isVideoTabSearchNetworkUrl,
   loadDouyinConfig,
   matchesDouyinNetworkUrl,
 } from "./filter-map.js";
@@ -23,10 +24,13 @@ import { log } from "../../utils/logger.js";
 import {
   domItemsToParsed,
   extractVideosFromDom,
+  mergeDomOrder,
 } from "./dom-extractor.js";
 import {
   isValidDouyinVideoId,
+  mergeNetworkOrder,
   mergeParsedItems,
+  parseDouyinSearchResponseOrdered,
   parseDouyinSearchResponseText,
   type ParsedDouyinItem,
 } from "./network-parser.js";
@@ -53,7 +57,9 @@ export class DouyinAdapter implements PlatformAdapter {
 
     const config = loadConfig();
     const platformCfg = await loadDouyinConfig();
-    const collected = new Map<string, ParsedDouyinItem>();
+    const enrichment = new Map<string, ParsedDouyinItem>();
+    let domOrder: string[] = [];
+    let networkOrder: string[] = [];
     let captureEnabled = false;
     let resolveFirstCapture: (() => void) | null = null;
 
@@ -76,9 +82,16 @@ export class DouyinAdapter implements PlatformAdapter {
           return;
         }
 
-        const before = collected.size;
-        mergeParsedItems(collected, parseDouyinSearchResponseText(text));
-        if (collected.size > before && resolveFirstCapture) {
+        const parsed = isVideoTabSearchNetworkUrl(url)
+          ? parseDouyinSearchResponseOrdered(text)
+          : parseDouyinSearchResponseText(text);
+
+        const before = enrichment.size;
+        mergeParsedItems(enrichment, parsed);
+        if (isVideoTabSearchNetworkUrl(url)) {
+          networkOrder = mergeNetworkOrder(networkOrder, parsed);
+        }
+        if (enrichment.size > before && resolveFirstCapture) {
           resolveFirstCapture();
           resolveFirstCapture = null;
         }
@@ -106,7 +119,9 @@ export class DouyinAdapter implements PlatformAdapter {
       );
       await driver.wait(2000);
 
-      collected.clear();
+      enrichment.clear();
+      domOrder = [];
+      networkOrder = [];
       captureEnabled = true;
 
       const firstCapture = new Promise<void>((resolve) => {
@@ -125,26 +140,46 @@ export class DouyinAdapter implements PlatformAdapter {
           panel: filterResult.panel,
           sort: filterResult.sort,
           publish: filterResult.publish,
-          prefilledCount: collected.size,
+          prefilledCount: enrichment.size,
+          domOrderCount: domOrder.length,
         },
       });
 
       await this.scrollUntilLimit(
         driver,
-        collected,
+        enrichment,
+        domOrder,
         req.limit,
         config.MAX_SCROLLS,
         config.SCROLL_DELAY_MS,
       );
 
-      await this.collectFromDom(driver, collected);
+      domOrder = await this.collectFromDom(driver, enrichment, domOrder);
 
-      let items = this.normalizeItems(collected, req, platformCfg);
+      let items = this.normalizeItems(
+        enrichment,
+        domOrder,
+        networkOrder,
+        req,
+        platformCfg,
+      );
 
       if (items.length < req.limit) {
-        await this.scrollUntilLimit(driver, collected, req.limit, 3, config.SCROLL_DELAY_MS);
-        await this.collectFromDom(driver, collected);
-        items = this.normalizeItems(collected, req, platformCfg);
+        domOrder = await this.scrollUntilLimit(
+          driver,
+          enrichment,
+          domOrder,
+          req.limit,
+          3,
+          config.SCROLL_DELAY_MS,
+        );
+        items = this.normalizeItems(
+          enrichment,
+          domOrder,
+          networkOrder,
+          req,
+          platformCfg,
+        );
       }
 
       if (items.length === 0) {
@@ -168,50 +203,80 @@ export class DouyinAdapter implements PlatformAdapter {
 
   private async collectFromDom(
     driver: BrowserDriver,
-    collected: Map<string, ParsedDouyinItem>,
-  ): Promise<void> {
+    enrichment: Map<string, ParsedDouyinItem>,
+    domOrder: string[],
+  ): Promise<string[]> {
     const domItems = await extractVideosFromDom((script) =>
       driver.evaluateScript(script),
     );
-    mergeParsedItems(collected, domItemsToParsed(domItems));
+    mergeParsedItems(enrichment, domItemsToParsed(domItems));
+    return mergeDomOrder(domOrder, domItems);
+  }
+
+  private resultCount(domOrder: string[], enrichment: Map<string, ParsedDouyinItem>): number {
+    return domOrder.length > 0 ? domOrder.length : enrichment.size;
   }
 
   private async scrollUntilLimit(
     driver: BrowserDriver,
-    collected: Map<string, ParsedDouyinItem>,
+    enrichment: Map<string, ParsedDouyinItem>,
+    domOrder: string[],
     limit: number,
     maxScrolls: number,
     delayMs: number,
-  ): Promise<void> {
+  ): Promise<string[]> {
+    let order = domOrder;
     for (let i = 0; i < maxScrolls; i++) {
-      if (collected.size >= limit) break;
+      if (this.resultCount(order, enrichment) >= limit) break;
       await driver.scroll(900);
       await sleep(delayMs);
-      if (collected.size >= limit) break;
-      await this.collectFromDom(driver, collected);
+      if (this.resultCount(order, enrichment) >= limit) break;
+      order = await this.collectFromDom(driver, enrichment, order);
     }
 
-    if (collected.size < limit) {
+    if (this.resultCount(order, enrichment) < limit) {
       await driver.act("继续向下滚动页面，加载更多搜索结果。");
       for (let i = 0; i < 3; i++) {
-        if (collected.size >= limit) break;
+        if (this.resultCount(order, enrichment) >= limit) break;
         await driver.scroll(900);
         await sleep(delayMs);
-        await this.collectFromDom(driver, collected);
+        order = await this.collectFromDom(driver, enrichment, order);
       }
     }
+
+    return order;
+  }
+
+  private resolveItemOrder(
+    domOrder: string[],
+    networkOrder: string[],
+    enrichment: Map<string, ParsedDouyinItem>,
+  ): string[] {
+    if (domOrder.length > 0) {
+      return domOrder;
+    }
+    if (networkOrder.length > 0) {
+      return networkOrder;
+    }
+    return Array.from(enrichment.keys());
   }
 
   private normalizeItems(
-    collected: Map<string, ParsedDouyinItem>,
+    enrichment: Map<string, ParsedDouyinItem>,
+    domOrder: string[],
+    networkOrder: string[],
     req: SearchRequest,
     platformCfg: Awaited<ReturnType<typeof loadDouyinConfig>>,
   ): UnifiedContentItem[] {
     const contentType = (req.filters?.contentType as ContentType) ?? "video";
     const fetchedAt = new Date().toISOString();
+    const order = this.resolveItemOrder(domOrder, networkOrder, enrichment);
 
-    return Array.from(collected.values())
-      .filter((item) => isValidDouyinVideoId(item.platformId))
+    return order
+      .map((platformId) => enrichment.get(platformId))
+      .filter((item): item is ParsedDouyinItem => {
+        return item !== undefined && isValidDouyinVideoId(item.platformId);
+      })
       .map((item, index) => {
         const canonicalUrl = buildDouyinCanonicalUrl(platformCfg, item.platformId);
         return {
