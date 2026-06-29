@@ -20,7 +20,7 @@ Authorization: Bearer <API_TOKEN>
 
 ### `POST /v1/search`
 
-同步搜索（等同 CLI `npm run search`），阻塞直到完成。
+同步搜索（等同 CLI `npm run search`），阻塞直到完成。抖音 Tab/筛选通过 Playwright 点击 `data-key` / `data-index` DOM，不用 Stagehand 点筛选面板。
 
 ```bash
 curl -X POST http://localhost:3200/v1/search \

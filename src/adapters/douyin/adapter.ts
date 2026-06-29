@@ -14,10 +14,12 @@ import type { ContentType, UnifiedContentItem } from "../../types/content.js";
 import {
   buildDouyinCanonicalUrl,
   buildDouyinSearchUrl,
+  isGeneralTabSearchNetworkUrl,
   loadDouyinConfig,
   matchesDouyinNetworkUrl,
-  resolveDouyinFilters,
 } from "./filter-map.js";
+import { applyDouyinSearchFilters } from "./search-ui.js";
+import { log } from "../../utils/logger.js";
 import {
   domItemsToParsed,
   extractVideosFromDom,
@@ -51,16 +53,35 @@ export class DouyinAdapter implements PlatformAdapter {
 
     const config = loadConfig();
     const platformCfg = await loadDouyinConfig();
-    const filters = await resolveDouyinFilters(req.filters);
     const collected = new Map<string, ParsedDouyinItem>();
+    let captureEnabled = false;
+    let resolveFirstCapture: (() => void) | null = null;
 
     const onResponse = async (response: import("playwright-core").Response) => {
+      if (!captureEnabled) {
+        return;
+      }
+
       const url = response.url();
-      if (!matchesDouyinNetworkUrl(platformCfg, url)) return;
+      if (!matchesDouyinNetworkUrl(platformCfg, url)) {
+        return;
+      }
+      if (isGeneralTabSearchNetworkUrl(url)) {
+        return;
+      }
+
       try {
         const text = await response.text();
-        if (!text.includes("aweme_id") && !text.includes("awemeId")) return;
+        if (!text.includes("aweme_id") && !text.includes("awemeId")) {
+          return;
+        }
+
+        const before = collected.size;
         mergeParsedItems(collected, parseDouyinSearchResponseText(text));
+        if (collected.size > before && resolveFirstCapture) {
+          resolveFirstCapture();
+          resolveFirstCapture = null;
+        }
       } catch {
         // 忽略无法读取的响应
       }
@@ -69,22 +90,44 @@ export class DouyinAdapter implements PlatformAdapter {
     driver.onResponse(onResponse);
 
     try {
-      const searchUrl = buildDouyinSearchUrl(platformCfg, req.keyword);
+      const searchUrl = buildDouyinSearchUrl(
+        platformCfg,
+        req.keyword,
+        req.filters,
+      );
       await driver.goto(searchUrl);
       await driver.wait(3000);
 
-      const hasFilters = Boolean(req.filters && Object.keys(req.filters).length > 0);
-      if (hasFilters) {
-        await driver.act(
-          [
-            "如果页面有登录弹窗或引导弹窗，先关闭它们。",
-            `打开筛选面板，设置：内容类型=${filters.contentTypeLabel}，排序=${filters.sortByLabel}，发布时间=${filters.publishTimeLabel}，然后确认筛选。`,
-            "确保当前在搜索结果列表页。",
-          ].join("\n"),
-        );
-      } else {
-        await driver.act("如果页面有登录弹窗或引导弹窗，先关闭它们。");
-      }
+      await driver.act("如果页面有登录弹窗或引导弹窗，先关闭它们。");
+      const filterResult = await applyDouyinSearchFilters(
+        driver,
+        platformCfg,
+        req.filters,
+      );
+      await driver.wait(2000);
+
+      collected.clear();
+      captureEnabled = true;
+
+      const firstCapture = new Promise<void>((resolve) => {
+        resolveFirstCapture = resolve;
+      });
+      await Promise.race([
+        firstCapture,
+        sleep(10_000).then(() => undefined),
+      ]);
+      resolveFirstCapture = null;
+
+      log.info("Douyin search capture started after filters", {
+        context: {
+          captureEnabled: true,
+          tabActive: filterResult.tabActive,
+          panel: filterResult.panel,
+          sort: filterResult.sort,
+          publish: filterResult.publish,
+          prefilledCount: collected.size,
+        },
+      });
 
       await this.scrollUntilLimit(
         driver,

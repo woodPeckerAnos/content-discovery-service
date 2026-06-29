@@ -17,6 +17,11 @@ describe("EXTRACT_VIDEOS_SCRIPT guard", () => {
     expect(EXTRACT_VIDEOS_SCRIPT).toContain("document.querySelectorAll");
   });
 
+  it("skips embedded script aweme mining to avoid general-tab pollution", () => {
+    expect(EXTRACT_VIDEOS_SCRIPT).not.toContain('querySelectorAll("script")');
+    expect(EXTRACT_VIDEOS_SCRIPT).toContain("isVisible");
+  });
+
   it("parses as valid JS function body in Node (syntax only)", () => {
     expect(() => {
       // eslint-disable-next-line no-new-func

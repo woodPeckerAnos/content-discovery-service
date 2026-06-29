@@ -91,6 +91,16 @@ export const EXTRACT_VIDEOS_SCRIPT = `() => {
     return "";
   }
 
+  function isVisible(el) {
+    if (!el) return false;
+    const rect = el.getBoundingClientRect();
+    if (rect.width < 2 || rect.height < 2) return false;
+    const style = window.getComputedStyle(el);
+    if (style.display === "none" || style.visibility === "hidden") return false;
+    if (Number(style.opacity) === 0) return false;
+    return true;
+  }
+
   const anchors = document.querySelectorAll("a[href]");
   for (let i = 0; i < anchors.length; i++) {
     const el = anchors[i];
@@ -102,6 +112,8 @@ export const EXTRACT_VIDEOS_SCRIPT = `() => {
       "li, [class*='card'], [class*='item'], [class*='search'], [data-e2e]"
     ) || el.parentElement;
 
+    if (!isVisible(card) && !isVisible(el)) continue;
+
     const cardDesc = pickCardDesc(card);
     const anchorTitle = (el.getAttribute("title") || "").trim();
     const linkText = el.textContent ? el.textContent.replace(/\\s+/g, " ").trim() : "";
@@ -109,33 +121,6 @@ export const EXTRACT_VIDEOS_SCRIPT = `() => {
     // 详情（含 #话题）优先于链接 title 属性
     const title = cardDesc || anchorTitle || linkText;
     add(id, isNoiseText(title) ? cardDesc : title, href);
-  }
-
-  const scripts = document.querySelectorAll("script");
-  for (let i = 0; i < scripts.length; i++) {
-    const text = scripts[i].textContent || "";
-    if (text.indexOf("aweme_id") === -1) continue;
-
-    const blockRe =
-      /"aweme_id"\\s*:\\s*"?(\\d{10,25})"?[\\s\\S]{0,4000}?"desc"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g;
-    let block;
-    while ((block = blockRe.exec(text)) !== null) {
-      if (!block[1]) continue;
-      let desc = block[2] || "";
-      desc = desc
-        .replace(/\\\\n/g, " ")
-        .replace(/\\\\"/g, '"')
-        .replace(/\\\\\\\\/g, "\\\\")
-        .replace(/\\s+/g, " ")
-        .trim();
-      add(block[1], desc, undefined);
-    }
-
-    const idRe = /"aweme_id"\\s*:\\s*"?(\d{10,25})"?/g;
-    let match;
-    while ((match = idRe.exec(text)) !== null) {
-      if (match[1]) add(match[1]);
-    }
   }
 
   return results;

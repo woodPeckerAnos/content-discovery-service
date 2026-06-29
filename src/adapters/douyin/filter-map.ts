@@ -14,6 +14,12 @@ export interface DouyinPlatformConfig {
   searchUrlTemplate: string;
   canonicalUrlTemplate: string;
   network: { urlPatterns: string[] };
+  /** PC 搜索页 DOM 筛选索引（span[data-key] / data-index1|2） */
+  domFilterIndices?: {
+    contentTypeTab: Record<string, string>;
+    sortBy: Record<string, { index1: number; index2: number }>;
+    publishTime: Record<string, { index1: number; index2: number }>;
+  };
   filters: {
     contentType: Record<string, string>;
     sortBy: Record<string, string>;
@@ -83,9 +89,53 @@ export async function resolveDouyinFilters(
   };
 }
 
+export interface DouyinFilterDomSelection {
+  contentTypeTab?: string;
+  sort?: { index1: number; index2: number; label: string };
+  publish?: { index1: number; index2: number; label: string };
+}
+
+export function resolveDouyinFilterDomSelection(
+  cfg: DouyinPlatformConfig,
+  filters?: Record<string, unknown>,
+): DouyinFilterDomSelection {
+  const dom = cfg.domFilterIndices;
+  if (!dom) {
+    return {};
+  }
+
+  const contentTypeKey = String(
+    filters?.contentType ?? cfg.defaults.contentType,
+  );
+  const sortByKey = String(filters?.sortBy ?? cfg.defaults.sortBy);
+  const publishTimeKey = String(
+    filters?.publishTime ?? cfg.defaults.publishTime,
+  );
+
+  const sortIndices = dom.sortBy[sortByKey];
+  const publishIndices = dom.publishTime[publishTimeKey];
+
+  return {
+    contentTypeTab: dom.contentTypeTab[contentTypeKey],
+    sort: sortIndices
+      ? {
+          ...sortIndices,
+          label: cfg.filters.sortBy[sortByKey] ?? sortByKey,
+        }
+      : undefined,
+    publish: publishIndices
+      ? {
+          ...publishIndices,
+          label: cfg.filters.publishTime[publishTimeKey] ?? publishTimeKey,
+        }
+      : undefined,
+  };
+}
+
 export function buildDouyinSearchUrl(
   cfg: DouyinPlatformConfig,
   keyword: string,
+  _filters?: Record<string, unknown>,
 ): string {
   return cfg.searchUrlTemplate.replace(
     "{keyword}",
@@ -108,4 +158,12 @@ export function matchesDouyinNetworkUrl(
     return true;
   }
   return /aweme\/v\d+\/web\/.+search/i.test(url);
+}
+
+/** 综合 Tab 搜索 API；视频 Tab 采集阶段应忽略，避免与 general 结果混并 */
+export function isGeneralTabSearchNetworkUrl(url: string): boolean {
+  return (
+    url.includes("/aweme/v1/web/general/search") ||
+    url.includes("/aweme/v1/general/search")
+  );
 }

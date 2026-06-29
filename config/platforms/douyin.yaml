@@ -1,5 +1,20 @@
+# PC 搜索页：/search/{keyword}；Tab/筛选走 DOM（data-key、data-index1/2），URL query 不能切换 Tab
 searchUrlTemplate: "https://www.douyin.com/search/{keyword}"
 canonicalUrlTemplate: "https://www.douyin.com/video/{platformId}"
+
+# 与 PC 搜索页 span[data-key]、span[data-index1/2] 对齐（index1: 0排序 1发布时间 2视频时长 3搜索范围）
+domFilterIndices:
+  contentTypeTab:
+    video: video
+    image_text: general
+  sortBy:
+    综合: { index1: 0, index2: 0 }
+    最新: { index1: 0, index2: 1 }
+    最多点赞: { index1: 0, index2: 2 }
+  publishTime:
+    一天内: { index1: 1, index2: 1 }
+    一周内: { index1: 1, index2: 2 }
+    半年内: { index1: 1, index2: 3 }
 
 network:
   urlPatterns:
